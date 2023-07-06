@@ -33,18 +33,30 @@ class loginController extends Controller
 
         //Si la validacion falla, se retorna un error
         if ($validacion->fails())
-            return $this->error($validacion->errors(), 422);
+            return response()->json([
+                'msg' => 'Error en las validaciones',
+                'data' => $validacion->errors(),
+                'status' => '422'
+            ], 422);
 
         //Se obtienen los datos del usuario
         $user = User::where('email', $request->email)->first();
 
         //Si el usuario no existe, se retorna un error
         if (!$user)
-            return $this->error('Usuario no encontrado', 404);
+            return response()->json([
+                'msg' => 'Usuario no encontrado',
+                'data' => 'error',
+                'status' => '404'
+            ], 404);
 
         //Si la contraseña no coincide, se retorna un error
         if (!Hash::check($request->password, $user->password))
-            return $this->error('Contraseña incorrecta', 401);
+            return response()->json([
+                'msg' => 'Contraseña incorrecta',
+                'data' => 'error',
+                'status' => '401'
+            ], 401);
 
         //Se genera el token de acceso
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -53,7 +65,7 @@ class loginController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-        ]);
+        ], 200);
     }
 
     public function register(Request $request)
@@ -63,11 +75,20 @@ class loginController extends Controller
 
         //Si la validacion falla, se retorna un error
         if ($validacion->fails())
-            return $this->error($validacion->errors(), 422);
-        
+            return response()->json([
+                'msg' => 'Error en las validaciones',
+                'data' => $validacion->errors(),
+                'status' => '422'
+            ], 422);
+
         $user = User::where('email', $request->email)->first();
+
         if ($user)
-            return $this->error('Usuario existente', 404);
+            return response()->json([
+                'msg' => 'Usuario ya existente',
+                'data' => $user,
+                'status' => '422'
+            ], 422);
 
         //Se crea el usuario
         $user = User::create([
@@ -83,13 +104,16 @@ class loginController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-        ]);
+        ], 201);
     }
 
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Sesión cerrada'], 200);
+        return response()->json([
+            'msg' => 'Sesión cerrada',
+            'status' => 'success'
+        ], 200);
     }
 }

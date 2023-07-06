@@ -21,6 +21,8 @@ class PersonasController extends Controller
         'apellido_m' => 'required|string|max:60',
     ];
 
+    
+
     /**
      * Display a listing of the resource.
      *
@@ -32,8 +34,9 @@ class PersonasController extends Controller
         $persona=Persona::all();
         return response()->json([
             'msg'   => 'Personas obtenidas correctamente',
-            'data'  => $persona
-        ], 200);
+            'data'  => $persona,
+            'status'=> 201
+        ], 201);
 
     }
 
@@ -59,14 +62,31 @@ class PersonasController extends Controller
         $validacion = Validator::make($request->all(), $this->reglas);
         //Si la validacion falla, se retorna un error
         if ($validacion->fails()) 
-            return $this->error($validacion->errors(), 422);
+         return response()->json([
+            'msg'   => 'Error al crear la persona, datos incorrectos',
+            'data'  => $validacion->errors(),
+            'status'=> 422
+        ], 422);   
+        //return $this->error($validacion->errors(), 422);
        // en caso de no tener token retornar un error en json
         if (!$request->bearerToken()) 
             return $this->error('No se ha enviado el token', 401); 
         //Si la validacion no falla, se crea el registro
         
         $persona = Persona::create($validacion->validated());
-        return $this->exito(['persona'=>$persona]);
+        //return $this->exito(['persona'=>$persona]);
+
+        if ($persona->save())
+        return response()->json([
+            'msg'   => 'Persona creada correctamente',
+            'data'  => $persona,
+            'status'=> 201
+        ], 201);
+        return response()->json([
+            'msg'   => 'Error al crear la persona',
+            'data'  => null,
+            'status'=> 422
+        ], 422);
 
     }
 
@@ -99,22 +119,49 @@ class PersonasController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Persona $persona)
+    public function update(Request $request,  $persona_id)
     {
         //Se valida la solicitud
         $validacion = Validator::make($request->all(), $this->reglas);
 
         //Si la validacion falla, se retorna un error
         if ($validacion->fails()) 
-            return $this->error($validacion->errors());
+            //return $this->error($validacion->errors());
+            return response()->json([
+                'msg'   => 'Error al actualizar la persona, datos incorrectos',
+                'data'  => $validacion->errors(),
+                'status'=> 422
+            ], 422);
 
         // en caso de no tener token retornar un error en json
         if (!$request->bearerToken()) 
             return $this->error('No se ha enviado el token', 401);
+            //buscar por id
+            $persona = Persona::find($persona_id);
+            if (!$persona)
+                return $this->error('No se encontro la persona', 404);
+        
+                $persona->nombre = $request->nombre;
+                $persona->apellido_p = $request->apellido_p;
+                $persona->apellido_m = $request->apellido_m;
+                $persona->save();
 
         //Si la validacion no falla, se actualiza el registro
-        $persona->update($validacion->validated());
-        return $this->exito(['persona'=>$persona]);
+       
+        if($persona->save())
+        return response()->json([
+            'msg'   => 'Persona actualizada correctamente',
+            'data'  => $persona,
+            'status'=> 201
+        ], 201);
+
+        //si la persona no se actualizo correctamente
+        else
+            return response()->json([
+                'msg'   => 'Error al actualizar la persona',
+                'data'  => null,
+                'status'=> 422
+            ], 422);
 
     }
 
@@ -124,10 +171,22 @@ class PersonasController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Persona $persona)
+    public function destroy($persona_id)
     {
+        $persona = Persona::find($persona_id);
+        if (!$persona){
+            return response()->json([
+                'msg'   => 'la persona no existe',
+                'data'  => null,
+                'status'=> 404
+            ], 404);
+        }else
         $persona->delete();
-        return $this->exito(['persona'=>$persona]);
-         
+        return response()->json([
+            'msg'   => 'Persona eliminada correctamente',
+            'data'  => $persona,
+            'status'=> 201
+        ], 201);
+        
     }
 }

@@ -65,6 +65,10 @@ class loginController extends Controller
         if ($validacion->fails())
             return $this->error($validacion->errors(), 422);
         
+        $user = User::where('email', $request->email)->first();
+        if ($user)
+            return $this->error('Usuario existente', 404);
+
         //Se crea el usuario
         $user = User::create([
             'name' => $request->name,
